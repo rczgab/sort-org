@@ -38,22 +38,28 @@ def check_id3_version(file_path):
 
 
 # Set the starting directory
-start_dir = Path(r"/Users/gabor/Music/Musix_safe")
+start_dir = Path(r"X:\testrun\audio-test\2010\2")
 
 # Recursively find all mp3 files
 mp3_files = list(start_dir.rglob('*.mp3'))
-
+versions = {}
 print(versions)
 # Print found files
 for mp3_file in mp3_files:
     check_id3_version(mp3_file)
 print(versions)
 
-for mp3_file in mp3_files:
-    try:
-        audio = MP3(mp3_file, ID3=ID3)
+if True:
+    for mp3_file in mp3_files:
+        try:
+            audio = MP3(mp3_file, ID3=ID3)
+        except ID3NoHeaderError:
+            audio = MP3(mp3_file)
+            audio.add_tags(ID3=ID3)
+        
         audio.save(v2_version=4)
-    except Exception as e:
-        print(f"Error processing {mp3_file}: {e}")
-        continue
-print("Done")
+    print("Done")
+versions = {}
+for mp3_file in mp3_files:
+    check_id3_version(mp3_file)
+print(versions)
