@@ -146,11 +146,11 @@ if __name__ == '__main__':
             uid = uuid.uuid4()
             target_dir = output_dir / uid.hex
             target_dir.mkdir(parents=True, exist_ok=True)
-            for i in fpath:
-                print(f"Duplicate hash: {hash} - {i}")
-                target_path = target_dir / i.name
+            for idx, old_path in enumerate(fpath):
+                target_path = target_dir / old_path.name
                 unique_destination = get_unique_filename(target_path)
-                i.rename(unique_destination)
+                old_path.rename(unique_destination)
+                fpath[idx] = unique_destination  # Update the hashmap's path
                 print(f"Moved to {unique_destination}")
                 
     save_database_to_pickle(hashmap,str(output_dir / f"{root_dir.name}.pkl"))
