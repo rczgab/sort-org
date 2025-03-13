@@ -340,15 +340,16 @@ def clean_hashmap(hash_map):
     return cleaned_hash_map
 
 if __name__ == "__main__":
-    Collection = Path(r"")
-    To_Check = Path(r"X:\FIXVERSION\audio\2004\1")
-    output_main = Path(r"X:/FIXVERSION/other_simple")
+    Collection = Path(r"X:\_SAFE\0_DATA_SAFE\Game\6\Naruto Storm M.U.G.E.N (2010)\Naruto Storm M.U.G.E.N (2010)")
+    To_Check = Path(r"X:\FIXVERSION\other_simple")
+    output_main = Path(r"X:\Target")
     hashmappath = Path(r"")
+    hash_map = {}
     logger = global_logging(output_main)
     if not Collection and not hashmappath:
         print("Missing input.")
         sys.exit()
-    if not hashmappath:
+    if not hashmappath == Path():
         hash_map = load_database_from_pickle(str(hashmappath))
     
     if not hash_map:
@@ -356,6 +357,7 @@ if __name__ == "__main__":
             collection_files.hash = calc_hash(collection_files.path)
             if collection_files.hash not in hash_map:
                 hash_map[collection_files.hash] = collection_files
+        save_database_to_pickle(hash_map,str(output_main / f"{Collection.name}.pkl"))
 
     for tobechecked in crawler(str(To_Check)):
         hashh = calc_hash(tobechecked.path)
