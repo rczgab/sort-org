@@ -3,14 +3,13 @@ import os
 import datetime
 import logging
 from logging.handlers import RotatingFileHandler
-import sys
-import exifread
 import pickle
 import hashlib
 import shutil
 from dataclasses import dataclass, field
 from typing import Optional
 from pathlib import Path
+import sys
 
 # --- Constants and configuration ---
 
@@ -341,13 +340,22 @@ def clean_hashmap(hash_map):
     return cleaned_hash_map
 
 if __name__ == "__main__":
-    To_Check = Path("X:/FIXVERSION/other_simple")
-    output_main = Path("X:/FIXVERSION/other_simple")
+    Collection = Path(r"")
+    To_Check = Path(r"X:\FIXVERSION\audio\2004\1")
+    output_main = Path(r"X:/FIXVERSION/other_simple")
+    hashmappath = Path(r"")
     logger = global_logging(output_main)
-    hash_map = load_database_from_pickle("X:/FIXVERSION/hash_map.pickle")
-
-
-
+    if not Collection and not hashmappath:
+        print("Missing input.")
+        sys.exit()
+    if not hashmappath:
+        hash_map = load_database_from_pickle(str(hashmappath))
+    
+    if not hash_map:
+        for collection_files in crawler(str(Collection)):
+            collection_files.hash = calc_hash(collection_files.path)
+            if collection_files.hash not in hash_map:
+                hash_map[collection_files.hash] = collection_files
 
     for tobechecked in crawler(str(To_Check)):
         hashh = calc_hash(tobechecked.path)
