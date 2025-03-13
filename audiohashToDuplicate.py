@@ -10,8 +10,8 @@ import datetime
 from dataclasses import dataclass, field
 from typing import Optional
 import shutil
-import regex
 import uuid
+import pickle
 
 #Logger
 #Global logging, with a rotating file handler
@@ -42,6 +42,22 @@ def global_logging(output_main):
         logger.addHandler(log_handler)
 
     return logger
+
+#Counter funtion class
+class Counter:
+    def __init__(self):
+        self.cr = 0
+
+    def update(self):
+        self.cr += 1
+        if self.cr%50 == 0:
+            print(f"Feldolgozott fájlok száma: {self.cr}")
+
+    def clear(self):
+        self.cr = 0
+
+    def show(self):
+        print(f"Elemszám: {self.cr}")
 
 
 def get_available_subfolder(output_dir: Path, base_name: str, max_attempts: int = 500000):
@@ -96,16 +112,23 @@ def get_audio_hash(file_path):
         logger.error(f"Error processing {file_path}: {e}")
         return None
     
+#Save database in a pickle file
+def save_database_to_pickle(db, filepath):
+    with open(filepath, 'wb') as f:
+        pickle.dump(db, f)
+    
 if __name__ == '__main__':
 
-    root_dir = Path(r"X:\testrun\audio-test\1980")
+    root_dir = Path(r"X:\testrun\mp3_test")
     output_dir = Path(r"X:\testrun\test_out")
 
     logger = global_logging(output_dir)
 
     hashmap = {}
+    c = Counter()
 
     for file_path in root_dir.rglob("*.mp3"):
+        c.update()
         audio_hash = get_audio_hash(file_path)
         if audio_hash is None:
             logger.error(f"Error hashing {file_path}")
@@ -114,7 +137,11 @@ if __name__ == '__main__':
             hashmap[audio_hash] = []
         hashmap[audio_hash].append(file_path)
     
+    
+    c.clear()
+
     for hash, fpath in hashmap.items():
+        c.update()
         if len(fpath) > 1:
             uid = uuid.uuid4()
             target_dir = output_dir / uid.hex
@@ -126,3 +153,4 @@ if __name__ == '__main__':
                 i.rename(unique_destination)
                 print(f"Moved to {unique_destination}")
                 
+    save_database_to_pickle(hashmap,str(output_dir / f"{root_dir.name}.pkl"))
