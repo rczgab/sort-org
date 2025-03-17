@@ -40,38 +40,36 @@ def check_id3_version(file_path):
 
 def ensure_id3_v24(file_path):
     # Load the MP3 file
-    audio = MP3(file_path)
+    tags = ID3(mp3_file)
+    #audio = MP3(file_path)
     
     # If there are NO ID3 tags, we manually add them
-    if audio.tags is None:
+    if tags is None:
         print(f"{file_path}: No ID3 tag found. Creating ID3v2.4...")
 
         # Add a new ID3 tag
-        audio.tags = ID3()
-
-        # (Optional) Add basic metadata
-        audio.tags.add(TIT2(encoding=3, text="Unknown Title"))  # Title
-        audio.tags.add(TPE1(encoding=3, text="Unknown Artist"))  # Artist
-        audio.tags.add(TALB(encoding=3, text="Unknown Album"))   # Album
+        tags = ID3()
 
         # Save as ID3v2.4
-        audio.save(v2_version=4)
+        tags.save(mp3_file,v2_version=4)
         print(f"{file_path}: ID3v2.4 tag added successfully.")
     else:
-        print(f"{file_path}: Already has ID3 tags.")
-
+        pass
+        #print(f"{file_path}: Already has ID3 tags.")
+def isvalidmp3(fpath):
+    try:
+        with open(fpath, "rb") as f:
+            header = f.read(3)
+            return header == b'ID3'
+    except:
+        return False
 
 # Set the starting directory
-start_dir = Path(r"X:\testrun\audio-test\2010\2")
-
+start_dir = Path(r"X:\testrun\audio-test")
 # Recursively find all mp3 files
 mp3_files = list(start_dir.rglob('*.mp3'))
-# Print found files
-for mp3_file in mp3_files:
-    check_id3_version(mp3_file)
-print(versions)
 
-if None:
+if True:
     for mp3_file in mp3_files:
         try:
             ensure_id3_v24(mp3_file)
@@ -80,3 +78,13 @@ if None:
             continue
 
     print("Done")
+"""
+for mp3_file in mp3_files:
+    try:
+        check_id3_version(mp3_file)
+    except Exception as e:
+        print("Error!!")
+        versions["Error"] = versions.get("Error", 0) + 1
+        continue
+print(versions)
+"""

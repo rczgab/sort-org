@@ -340,11 +340,12 @@ def clean_hashmap(hash_map):
     return cleaned_hash_map
 
 if __name__ == "__main__":
-    Collection = Path(r"X:\_SAFE\0_DATA_SAFE\Game\6\Naruto Storm M.U.G.E.N (2010)\Naruto Storm M.U.G.E.N (2010)")
-    To_Check = Path(r"X:\FIXVERSION\other_simple")
+    Collection = Path(r"")
+    To_Check = Path(r"X:\_SAFE\0_DATA_SAFE\mmeditáció")
     output_main = Path(r"X:\Target")
-    hashmappath = Path(r"")
+    hashmappath = Path(r"X:\testrun\mp3_test.pkl")
     hash_map = {}
+    c = Counter()
     logger = global_logging(output_main)
     if not Collection and not hashmappath:
         print("Missing input.")
@@ -365,11 +366,14 @@ if __name__ == "__main__":
             print(f"Error hashing file {tobechecked.path}")
             continue
         if hashh in hash_map:
-            target_dir = output_main / 'duplicates'
-            target_dir = get_available_subfolder(target_dir,tobechecked.name)
-            targetPathh = target_dir / tobechecked.name
-            try:
-                shutil.move(tobechecked.path, targetPathh)
-                print(f"File MOVED {tobechecked.path} to {targetPathh}")
-            except Exception as e:
-                print(f'Move error {tobechecked} {e}')
+            print("Found")
+            c.update()
+            #target_dir = output_main / 'duplicates'
+            #target_dir = get_available_subfolder(target_dir,tobechecked.name)
+            #targetPathh = target_dir / tobechecked.name
+            #try:
+            #    shutil.move(tobechecked.path, targetPathh)
+            #    print(f"File MOVED {tobechecked.path} to {targetPathh}")
+            #except Exception as e:
+            #    print(f'Move error {tobechecked} {e}')
+    c.show()

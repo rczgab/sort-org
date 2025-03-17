@@ -5,6 +5,7 @@ import logger
 import logging
 import shutil
 from counter_util import Counter
+from mutagen.mp3 import MP3
 
 #
 
@@ -75,18 +76,27 @@ def move(output_dir, file_i):
         except Exception as e:
             logger.error(f"Error during moving {file_i.path} to {new_path}")
 
+def is_shortmp3(file_path):
+    try:
+        audio = MP3(file_path)
+        duration = audio.info.length
+        return duration < 5
+    except Exception as e:
+        print("Error processing mp3 path")
+        return False
+
 if __name__ == '__main__':
     count = Counter()
 
-    root_dir = "X:/FIXVERSION/audio"
+    root_dir = "X:/testrun/audio-test"
     
     #output_dir = "X:/FIXVERSION/other_simple"
-    output_dir = "X:/FIXVERSION/mp3"
+    output_dir = "X:/testrun/test_trash"
     
     logger.global_logging(output_dir)
     logger = logging.getLogger(__name__)
 
-    other_ext = ('.mp3',)
+    mp3_ext = ('.mp3',)
     #('.sift','.php','.peft','.xsl', '.xsd','.xspf','.xst','.track','.thumb','.pp','.pcam','.a','.air','.dll','.exe')
     #('.pp','.diz','.fpc','ocx','.dll','.pas','.bak','.c','.h','.cpp')
     #('.gp3','.gp4')
@@ -106,10 +116,14 @@ if __name__ == '__main__':
         #condition = True
         #condition = condition_moveAppleFiles(file_i)
 
+        condition = False
+        if (condition_extension(file_i, mp3_ext)):
+            if (is_shortmp3(file_i)):
+                condition = True
 
         
         
-        condition = condition_extension(file_i, other_ext)
+        #condition = condition_extension(file_i, other_ext)
         #if not condition:
         #    if file_i.name == 'Thumbs.db':
         #        condition = True
