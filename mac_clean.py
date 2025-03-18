@@ -130,19 +130,19 @@ def condition_organize(file_info):
     """return condition = True and output subdir, based on the extension and the modification date.
     e.g. song.mp3 -> type selector -> audio -> mp3 -> 2021 -> song.mp3"""
     try:
-        file_info.path = Path(file_info.path)
         output_dir = Path(output_main)
         label = type_selector(file_info)
         year = file_info.mtime.year
-        extension = file_info.path.suffix
+        path = Path(file_info.path)
+        extension = path.suffix.lower()
         subdir = output_dir / label / extension[1:] / str(year)
         return True, str(subdir)
     except Exception as e:
         logger.error(f"Error in organize: {e}", exc_info=True)
         return False, None
 
-root_dir = Path(r"X:/testrun/audio-test")
-output_main = Path(r"X:/testrun/test_trash")
+root_dir = Path(r"X:\FIXVERSION")
+output_main = Path(r"X:\Target")
 
 if __name__ == '__main__':
     count = Counter()
