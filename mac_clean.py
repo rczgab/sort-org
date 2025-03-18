@@ -7,6 +7,7 @@ import shutil
 from counter_util import Counter
 from mutagen.mp3 import MP3
 from pathlib import Path
+import fnmatch
 
 #File type to inspect, in separate divisions
 image_Exif_ext = ('.jpg', '.jpeg')
@@ -126,6 +127,11 @@ def condition_Thumbs(file_info):
         return True
     return False
 
+def condition_filename(file_info, pattern):
+    if fnmatch.fnmatch(file_info.name, pattern):
+        return True
+    return False
+
 def condition_organize(file_info):
     """return condition = True and output subdir, based on the extension and the modification date.
     e.g. song.mp3 -> type selector -> audio -> mp3 -> 2021 -> song.mp3"""
@@ -141,8 +147,8 @@ def condition_organize(file_info):
         logger.error(f"Error in organize: {e}", exc_info=True)
         return False, None
 
-root_dir = Path(r"X:\FIXVERSION")
-output_main = Path(r"X:\Target")
+root_dir = Path(r"X:\_SAFE\0_DATA_SAFE\Movies")
+output_main = Path(r"X:\AppleShit")
 
 if __name__ == '__main__':
     count = Counter()
@@ -153,7 +159,7 @@ if __name__ == '__main__':
     logger.global_logging(output_main)
     logger = logging.getLogger(__name__)
 
-    other_ext = ()
+    other_ext = ('.nfo',)
     #('.sift','.php','.peft','.xsl', '.xsd','.xspf','.xst','.track','.thumb','.pp','.pcam','.a','.air','.dll','.exe')
     #('.pp','.diz','.fpc','ocx','.dll','.pas','.bak','.c','.h','.cpp')
     #('.gp3','.gp4')
@@ -170,9 +176,11 @@ if __name__ == '__main__':
         #condition = condition_movies(file_i, movies_ext)
         #condition = condition_shortmp3(file_i)
         #condition = condition_Thumbs(file_i)
-        condition, output_dir = condition_organize(file_i)
+        #condition, output_dir = condition_organize(file_i)
+        condition = condition_filename(file_i,'RARBG.txt')
 
         if condition:
+            #print(file_i.name)
             move(output_dir, file_i)
     count.show()
 
