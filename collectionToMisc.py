@@ -353,6 +353,17 @@ if __name__ == "__main__":
     if not hashmappath == Path():
         hash_map = load_database_from_pickle(str(hashmappath))
     
+    print(f"Collection: {Collection}")
+    print(f"To_Check: {To_Check}")
+    print(f"Output: {output_main}")
+    print(f"Hash map: {hashmappath}")
+    ans = input(f"Do you want to continue with these conditions? (yes/no): ")
+    if ans in ["yes", "y"]:
+        pass
+    else:
+        print("Exiting...")
+        sys.exit()
+    
     if not hash_map:
         for collection_files in crawler(str(Collection)):
             collection_files.hash = calc_hash(collection_files.path)
