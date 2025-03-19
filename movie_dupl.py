@@ -88,11 +88,11 @@ def save_db(file_db, output_file):
 
 """
 Crawl though the directory and if under the same extension and size there are more than one file, calculate the hash of them.
-If the hash is the same, move the duplicates to a new directory, but leave the file which's path contains 'kinetorold' as a directory in the path.
+If the hash is the same, move the duplicates to a new directory, but leave the file which's path contains 'kinetoroldmar' as a directory in the path.
 If the list of paths doesn't contain the keyword, leave the first file.
 """
 if __name__ == '__main__':
-    root_dir = Path(r"/Users/gabor/Documents/temp")
+    root_dir = Path(r"X:\_SAFE\0_DATA_SAFE\Movies")
     #output_main = Path(r"X:\AppleShit")
 
     logger = global_logging(root_dir)
@@ -134,7 +134,7 @@ if __name__ == '__main__':
             continue  # Not a duplicate group
 
         # Check if any path has 'kinetorold'
-        kin_paths = [p for p in paths_list if 'kinetorold' in p.parts]
+        kin_paths = [p for p in paths_list if 'kinetoroldmar' in p.parts]
         if kin_paths:
             keep_set = set(kin_paths)
         else:
@@ -147,6 +147,7 @@ if __name__ == '__main__':
             if p not in keep_set:
                 to_move.append(p)
                 logger.info(f"Moving: {p}")
+        print(len(to_move))
 
     # 5) Save database summary
     #out_file = root_dir / f"{root_dir.name}.txt"
