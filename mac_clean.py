@@ -177,7 +177,7 @@ if __name__ == '__main__':
         #condition = condition_shortmp3(file_i)
         #condition = condition_Thumbs(file_i)
         #condition, output_dir = condition_organize(file_i)
-        condition = condition_filename(file_i,'RARBG.txt')
+        condition = condition_filename(file_i,'ETRG.mp4')
 
         if condition:
             #print(file_i.name)

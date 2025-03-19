@@ -15,7 +15,7 @@ class Counter:
 
     def update(self):
         self.cr += 1
-        if self.cr%500 == 0:
+        if self.cr%50 == 0:
             print(f"Feldolgozott fájlok száma: {self.cr}")
 
     def clear(self):
@@ -66,8 +66,8 @@ def calc_hash(file_path, hash_algo=hashlib.sha3_256, chunk_size=65536, shorten=F
                 chunk = f.read(chunk_size)
                 #Shorten option for optional use. Code is left here for future use.
                 if shorten:
-                    if f.tell() > 10 * 1024 * 1024:
-                        logger.warning(f"Shortening (250mb) hash calculation for {file_path}")
+                    if f.tell() > 1 * 1024 * 1024:
+                        #logger.warning(f"Shortening (250mb) hash calculation for {file_path}")
                         break
                 if not chunk:
                     break
@@ -95,12 +95,12 @@ def get_folder_priority(path: Path) -> int:
       1 = dupes
       0 = none of the above
     """
-    parts = [part.lower() for part in path.parts]
-    if 'kinetorold' in parts:
+    parts = [part for part in path.parts]
+    if 'kinetoroldmar' in parts:
         return 3
-    elif 'newarrivals' in parts:
+    elif 'NewArrivalsShoo' in parts:
         return 2
-    elif 'dupes' in parts:
+    elif 'Dupl_Orguu' in parts:
         return 1
     else:
         return 0
@@ -116,14 +116,16 @@ If the hash is the same, move the duplicates to a new directory, but leave the f
 If the list of paths doesn't contain the keyword, leave the first file.
 """
 if __name__ == '__main__':
-    root_dir = Path(r"X:\_SAFE\0_DATA_SAFE\Movies")
+    root_dir = Path(r"X:\Collection_Storage\Movies")
     #output_main = Path(r"X:\AppleShit")
 
-    logger = global_logging(root_dir)
+    logger = global_logging(root_dir.parent)
     c = Counter()    
     d_files = {}
     hash_map = {}
     for file in root_dir.rglob('*'):
+        #if file.suffix.lower() not in ('.jpg','.png','.srt','.txt','.ac3','.zip','.pam','.ass','.sfv'):
+        #    continue
         if file.is_symlink():
             continue
         if file.is_file():
@@ -143,7 +145,7 @@ if __name__ == '__main__':
               if len(file_list) > 1:
                    for file in file_list:
                         c.update()
-                        hash = calc_hash(file,shorten=True)
+                        hash = calc_hash(file, shorten=True)
                         if hash not in hash_map:
                             hash_map[hash] = []
                         hash_map[hash].append(file)
@@ -165,9 +167,13 @@ for file_hash, paths_list in hash_map.items():
     # 3) Decide which files to keep vs. move
     if max_priority == 3:
         # if ANY file is in 'kinetorold', keep ALL those in kinetorold, move the rest
-        keep_set = {
-            p for (p, pri) in path_priorities if pri == 3
-        }
+        #keep_set = {p for (p, pri) in path_priorities if pri == 3}
+        kin_files = [p for (p, pri) in path_priorities if pri == 3]
+        if kin_files:
+            chosen = min(kin_files, key=lambda p: len(p.parts))
+            keep_set = {chosen}
+        else:
+            keep_set = set()
     elif max_priority == 2:
         # if none in kinetorold, but some in newarrivals, keep ALL in newarrivals
         keep_set = {
@@ -186,6 +192,8 @@ for file_hash, paths_list in hash_map.items():
         # Let's keep just the first as default:
         keep_set = {paths_list[0]}
 
+    logger.info(max_priority)
+    logger.info(paths_list)
     logger.info(f"Keeping: {keep_set}")
     # 4) Everything else is marked for moving
     for p, _ in path_priorities:
@@ -195,13 +203,13 @@ for file_hash, paths_list in hash_map.items():
 
 
 #Save to_move list to a file
-output_file = root_dir / (f"{root_dir.name}.txt")
+output_file = root_dir.parent / (f"{root_dir.name}.txt")
 with open(output_file, 'w',encoding="utf-8") as f:
     for file in to_move:
         f.write(f'{file}\n')
 
 
-save_database_to_pickle(to_move, root_dir / 'to_move.pkl')
+save_database_to_pickle(to_move, root_dir.parent / 'to_move.pkl')
 print('Done')
 
 

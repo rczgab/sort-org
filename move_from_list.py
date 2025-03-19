@@ -92,8 +92,8 @@ if __name__ == '__main__':
     logger = global_logging(output_main)
     if not output_main.exists():
         print(f"Output directory does not exist: {output_main}")
-        sys.exit()
-    db = load_database_from_pickle(r"X:\_SAFE\0_DATA_SAFE\Movies\database.pickle")
+        output_main.mkdir(parents=True, exist_ok=True)
+    db = load_database_from_pickle(r"X:\_SAFE\0_DATA_SAFE\to_move.pkl")
     if not db:
         print("Empty database")
         sys.exit()
