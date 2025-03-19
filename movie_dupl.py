@@ -1,10 +1,11 @@
 from pathlib import Path
-import json
 import hashlib
 import logging
 from logging.handlers import RotatingFileHandler
 import os
 import datetime
+import shutil
+import pickle
 
 # --- Helper functions ---
 #Counter funtion class
@@ -86,6 +87,29 @@ def save_db(file_db, output_file):
                     for file in value:
                         f.write(f'\t\t{file}\n')
 
+def get_folder_priority(path: Path) -> int:
+    """
+    Assign priorities based on directory name in the path:
+      3 = kinetorold
+      2 = newarrivals
+      1 = dupes
+      0 = none of the above
+    """
+    parts = [part.lower() for part in path.parts]
+    if 'kinetorold' in parts:
+        return 3
+    elif 'newarrivals' in parts:
+        return 2
+    elif 'dupes' in parts:
+        return 1
+    else:
+        return 0
+    
+#Save database in a pickle file
+def save_database_to_pickle(db, filepath):
+    with open(filepath, 'wb') as f:
+        pickle.dump(db, f)
+
 """
 Crawl though the directory and if under the same extension and size there are more than one file, calculate the hash of them.
 If the hash is the same, move the duplicates to a new directory, but leave the file which's path contains 'kinetoroldmar' as a directory in the path.
@@ -115,9 +139,7 @@ if __name__ == '__main__':
     c.clear()
 
     for ext, size_dict in d_files.items():
-        logger.info(f'Extension: {ext}')
         for size_val, file_list in size_dict.items():
-              logger.info(f'\tSize: {size_val}')
               if len(file_list) > 1:
                    for file in file_list:
                         c.update()
@@ -125,8 +147,85 @@ if __name__ == '__main__':
                         if hash not in hash_map:
                             hash_map[hash] = []
                         hash_map[hash].append(file)
-                        logger.info(f'\t\t{file}')
     c.show()
+   
+to_move = []  # will collect the files we want to move
+
+for file_hash, paths_list in hash_map.items():
+    if len(paths_list) <= 1:
+        continue  # no duplicates here
+
+    # 1) Calculate the folder priority of each file
+    path_priorities = [(p, get_folder_priority(p)) for p in paths_list]
+    # e.g. [ (Path('.../kinetorold/...'), 3), (Path('.../dupes/...'), 1), ...]
+
+    # 2) Find the highest priority that exists in this group
+    max_priority = max(pri for _, pri in path_priorities)
+
+    # 3) Decide which files to keep vs. move
+    if max_priority == 3:
+        # if ANY file is in 'kinetorold', keep ALL those in kinetorold, move the rest
+        keep_set = {
+            p for (p, pri) in path_priorities if pri == 3
+        }
+    elif max_priority == 2:
+        # if none in kinetorold, but some in newarrivals, keep ALL in newarrivals
+        keep_set = {
+            p for (p, pri) in path_priorities if pri == 2
+        }
+    elif max_priority == 1:
+        # if only dupes is present, keep ONE in 'dupes' (the first in the list)
+        dupes_only = [p for (p, pri) in path_priorities if pri == 1]
+        if dupes_only:
+            keep_set = {dupes_only[0]}   # or pick by whichever criteria you want
+        else:
+            keep_set = set()  # fallback
+    else:
+        # max_priority == 0, i.e. no known "special" folders
+        # Requirement isn't specified for this scenario. 
+        # Let's keep just the first as default:
+        keep_set = {paths_list[0]}
+
+    logger.info(f"Keeping: {keep_set}")
+    # 4) Everything else is marked for moving
+    for p, _ in path_priorities:
+        if p not in keep_set:
+            to_move.append(p)
+            logger.info(f"Moving: {p}")
+
+
+#Save to_move list to a file
+output_file = root_dir / (f"{root_dir.name}.txt")
+with open(output_file, 'w',encoding="utf-8") as f:
+    for file in to_move:
+        f.write(f'{file}\n')
+
+
+save_database_to_pickle(to_move, root_dir / 'to_move.pkl')
+print('Done')
+
+
+
+## Now physically move them
+#duplicates_folder = Path(r"X:\_SAFE\0_DATA_SAFE\Duplicates")
+#duplicates_folder.mkdir(exist_ok=True)
+#
+#for file_path in to_move:
+#    destination = duplicates_folder / file_path.name
+#    print(f"Moving {file_path} -> {destination}")
+#    try:
+#        shutil.move(str(file_path), str(destination))
+#    except Exception as e:
+#        logger.error(f"Error moving {file_path}: {e}")
+
+
+
+
+
+
+"""   
+   
+   
    # 3) Identify duplicates for each hash
     to_move = []
     for file_hash, paths_list in hash_map.items():
@@ -167,4 +266,9 @@ if __name__ == '__main__':
 
     #output_file = root_dir / (f"{root_dir.name}.txt")
     #save_db(d_files, output_file)
-    #print('Done')
+    #print('Done')"
+    ""
+    pass
+    
+    """
+   
