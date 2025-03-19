@@ -87,23 +87,18 @@ def save_db(file_db, output_file):
                     for file in value:
                         f.write(f'\t\t{file}\n')
 
-def get_folder_priority(path: Path) -> int:
+# get folder priority rank from a custom list.
+def get_priority_rank(path: Path, priority_folders: list) -> int:
     """
-    Assign priorities based on directory name in the path:
-      3 = kinetorold
-      2 = newarrivals
-      1 = dupes
-      0 = none of the above
+    Check the path parts against the priority_folders list.
+    Returns the index (rank) where 0 is highest priority.
+    If none of the folders is found, returns len(priority_folders).
     """
-    parts = [part for part in path.parts]
-    if 'kinetoroldmar' in parts:
-        return 3
-    elif 'NewArrivalsShoo' in parts:
-        return 2
-    elif 'Dupl_Orguu' in parts:
-        return 1
-    else:
-        return 0
+    parts = [part.lower() for part in path.parts]
+    for idx, folder in enumerate(priority_folders):
+        if folder.lower() in parts:
+            return idx
+    return len(priority_folders)
     
 #Save database in a pickle file
 def save_database_to_pickle(db, filepath):
@@ -117,25 +112,26 @@ If the list of paths doesn't contain the keyword, leave the first file.
 """
 if __name__ == '__main__':
     root_dir = Path(r"X:\Collection_Storage\Movies")
-    #output_main = Path(r"X:\AppleShit")
+    
+    # Define the priority folders list (order matters: first is highest)
+    PRIORITY_FOLDERS = ["kinetoroldmar", "duplo", "newarrivals", "other"]
+
+    # Filter for files (optional)
+    file_filter = ('.jpg','.png','.srt','.txt','.ac3','.zip','.pam','.ass','.sfv')
 
     logger = global_logging(root_dir.parent)
     c = Counter()    
     d_files = {}
     hash_map = {}
     for file in root_dir.rglob('*'):
-        #if file.suffix.lower() not in ('.jpg','.png','.srt','.txt','.ac3','.zip','.pam','.ass','.sfv'):
+        #if file.suffix.lower() not in file_filter:
         #    continue
         if file.is_symlink():
             continue
         if file.is_file():
             extension = file.suffix.lower()[1:]
             file_size = file.stat().st_size
-            if extension not in d_files:
-                d_files[extension] = {}
-            if file_size not in d_files[extension]:
-                d_files[extension][file_size] = []
-            d_files[extension][file_size].append(file)
+            d_files.setdefault(extension, {}).setdefault(file_size, []).append(file)
             c.update()
     c.show()
     c.clear()
@@ -146,9 +142,10 @@ if __name__ == '__main__':
                    for file in file_list:
                         c.update()
                         hash = calc_hash(file, shorten=True)
-                        if hash not in hash_map:
-                            hash_map[hash] = []
-                        hash_map[hash].append(file)
+                        if hash:
+                            hash_map.setdefault(hash, []).append(file)
+                        else:
+                            logger.error(f"Hash empty! {file}")
     c.show()
    
 to_move = []  # will collect the files we want to move
@@ -157,50 +154,19 @@ for file_hash, paths_list in hash_map.items():
     if len(paths_list) <= 1:
         continue  # no duplicates here
 
-    # 1) Calculate the folder priority of each file
-    path_priorities = [(p, get_folder_priority(p)) for p in paths_list]
-    # e.g. [ (Path('.../kinetorold/...'), 3), (Path('.../dupes/...'), 1), ...]
-
-    # 2) Find the highest priority that exists in this group
-    max_priority = max(pri for _, pri in path_priorities)
-
-    # 3) Decide which files to keep vs. move
-    if max_priority == 3:
-        # if ANY file is in 'kinetorold', keep ALL those in kinetorold, move the rest
-        #keep_set = {p for (p, pri) in path_priorities if pri == 3}
-        kin_files = [p for (p, pri) in path_priorities if pri == 3]
-        if kin_files:
-            chosen = min(kin_files, key=lambda p: len(p.parts))
-            keep_set = {chosen}
-        else:
-            keep_set = set()
-    elif max_priority == 2:
-        # if none in kinetorold, but some in newarrivals, keep ALL in newarrivals
-        keep_set = {
-            p for (p, pri) in path_priorities if pri == 2
-        }
-    elif max_priority == 1:
-        # if only dupes is present, keep ONE in 'dupes' (the first in the list)
-        dupes_only = [p for (p, pri) in path_priorities if pri == 1]
-        if dupes_only:
-            keep_set = {dupes_only[0]}   # or pick by whichever criteria you want
-        else:
-            keep_set = set()  # fallback
-    else:
-        # max_priority == 0, i.e. no known "special" folders
-        # Requirement isn't specified for this scenario. 
-        # Let's keep just the first as default:
-        keep_set = {paths_list[0]}
-
-    logger.info(max_priority)
-    logger.info(paths_list)
-    logger.info(f"Keeping: {keep_set}")
-    # 4) Everything else is marked for moving
-    for p, _ in path_priorities:
-        if p not in keep_set:
+    # Compute the rank for each file based on the priority folders list.
+    path_ranks = [(p, get_priority_rank(p, PRIORITY_FOLDERS)) for p in paths_list]
+    # Find the highest priority (lowest rank number)
+    best_rank = min(rank for _, rank in path_ranks)
+    # Choose one file with the best rank to keep.
+    candidates = [p for p, rank in path_ranks if rank == best_rank]
+    keep_file = min(candidates, key=lambda p: len(str(p.parent)))
+    logger.info(f"Keeping: {keep_file}")
+    # Mark all other files in the group for moving.
+    for p, _ in path_ranks:
+        if p != keep_file:
             to_move.append(p)
             logger.info(f"Moving: {p}")
-
 
 #Save to_move list to a file
 output_file = root_dir.parent / (f"{root_dir.name}.txt")
@@ -208,75 +174,5 @@ with open(output_file, 'w',encoding="utf-8") as f:
     for file in to_move:
         f.write(f'{file}\n')
 
-
 save_database_to_pickle(to_move, root_dir.parent / 'to_move.pkl')
-print('Done')
-
-
-
-## Now physically move them
-#duplicates_folder = Path(r"X:\_SAFE\0_DATA_SAFE\Duplicates")
-#duplicates_folder.mkdir(exist_ok=True)
-#
-#for file_path in to_move:
-#    destination = duplicates_folder / file_path.name
-#    print(f"Moving {file_path} -> {destination}")
-#    try:
-#        shutil.move(str(file_path), str(destination))
-#    except Exception as e:
-#        logger.error(f"Error moving {file_path}: {e}")
-
-
-
-
-
-
-"""   
-   
-   
-   # 3) Identify duplicates for each hash
-    to_move = []
-    for file_hash, paths_list in hash_map.items():
-        if len(paths_list) <= 1:
-            continue  # Not a duplicate group
-
-        # Check if any path has 'kinetorold'
-        kin_paths = [p for p in paths_list if 'kinetoroldmar' in p.parts]
-        if kin_paths:
-            keep_set = set(kin_paths)
-        else:
-            # If no 'kinetorold', we keep the *first* file in the list
-            # (you might define "first" by sort, or just the first in paths_list)
-            keep_set = {paths_list[0]}
-        logger.info(f"Keeping: {keep_set}")
-        # Move all others to duplicates folder
-        for p in paths_list:
-            if p not in keep_set:
-                to_move.append(p)
-                logger.info(f"Moving: {p}")
-        print(len(to_move))
-
-    # 5) Save database summary
-    #out_file = root_dir / f"{root_dir.name}.txt"
-    #save_db(d_files, out_file)
-    #print("Script completed.")
-                
-
-
-
-    #for ext, size in d_files.items():
-    #    print(extension)
-    #    for key, value in size.items():
-    #        if len(value) > 1:
-    #            print(f'\t{key}')
-    #            for file in value:
-    #                print(f'\t\t{file}')
-
-    #output_file = root_dir / (f"{root_dir.name}.txt")
-    #save_db(d_files, output_file)
-    #print('Done')"
-    ""
-    pass
-    
-    """
    
