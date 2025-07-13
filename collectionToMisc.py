@@ -291,13 +291,15 @@ def load_database_from_pickle(filepath):
 #The function is able to shorten the hash calculation to the first 100mb if the file size is greater than 1.5 Gb
 #The function returns the hash value as a string
 # Later the hash value is used as a key in the hash_map, and the size is checked to ensure further safety
-def calc_hash(file_path, chunk_size=65536, shorten=False):
+def calc_hash(file_path, algo, chunk_size=65536, shorten=False):
     logger = logging.getLogger()
     """Compute the hash of a file."""
-    #hash_algo=hashlib.sha3_256
-    #hash_obj = hash_algo()
+    if algo == "sha3":
+        hash_algo=hashlib.sha3_256
+        hash_obj = hash_algo()
+    if algo == "blake2":
     #logger.debug("Hash algo: sha3-256")
-    hash_obj = hashlib.blake2b(digest_size=64)
+        hash_obj = hashlib.blake2b(digest_size=64)
     try:
         with open(file_path, 'rb') as f:
             while True:
@@ -344,9 +346,11 @@ def clean_hashmap(hash_map):
 
 if __name__ == "__main__":
     Collection = Path(r"")
-    To_Check = Path(r"X:\2_Storage\2_DUPLICATES\2ndStr\2025-03-07_02-21-29\doc")
+    To_Check = Path(r"X:\TrashShit\doc")
     output_main = Path(r"X:\Target")
-    hashmappath = Path(r"X:\Target\SimpleStorage_blake2-512.pkl")
+    hashmappath = Path(r"X:\Target\SimpleStorage-sha3-256.pkl")
+    algo = "sha3"
+    #"blake2"
     hash_map = {}
     c = Counter()
     logger = global_logging(output_main)
@@ -360,6 +364,7 @@ if __name__ == "__main__":
     print(f"To_Check: {To_Check}")
     print(f"Output: {output_main}")
     print(f"Hash map: {hashmappath}")
+    print(f"Algo: {algo}")
     ans = input(f"Do you want to continue with these conditions? (yes/no): ")
     if ans in ["yes", "y"]:
         pass
@@ -371,17 +376,17 @@ if __name__ == "__main__":
     logger.debug(f"To_Check: {To_Check}")
     logger.debug(f"Output: {output_main}")
     logger.debug(f"Hash map: {hashmappath}")
-    logger.debug("Hash algo: blake2-512")
+    logger.debug(f"Hash algo: {algo}")
 
     if not hash_map:
         for collection_files in crawler(str(Collection)):
-            collection_files.hash = calc_hash(collection_files.path)
+            collection_files.hash = calc_hash(collection_files.path, algo)
             if collection_files.hash not in hash_map:
                 hash_map[collection_files.hash] = collection_files
         save_database_to_pickle(hash_map,str(output_main / f"{Collection.name}.pkl"))
 
     for tobechecked in crawler(str(To_Check)):
-        hashh = calc_hash(tobechecked.path)
+        hashh = calc_hash(tobechecked.path, algo)
         if hashh is None:
             print(f"Error hashing file {tobechecked.path}")
             continue
