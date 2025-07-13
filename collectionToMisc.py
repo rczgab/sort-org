@@ -291,10 +291,13 @@ def load_database_from_pickle(filepath):
 #The function is able to shorten the hash calculation to the first 100mb if the file size is greater than 1.5 Gb
 #The function returns the hash value as a string
 # Later the hash value is used as a key in the hash_map, and the size is checked to ensure further safety
-def calc_hash(file_path, hash_algo=hashlib.sha3_256, chunk_size=65536, shorten=False):
+def calc_hash(file_path, chunk_size=65536, shorten=False):
     logger = logging.getLogger()
     """Compute the hash of a file."""
-    hash_obj = hash_algo()
+    #hash_algo=hashlib.sha3_256
+    #hash_obj = hash_algo()
+    #logger.debug("Hash algo: sha3-256")
+    hash_obj = hashlib.blake2b(digest_size=64)
     try:
         with open(file_path, 'rb') as f:
             while True:
@@ -341,13 +344,13 @@ def clean_hashmap(hash_map):
 
 if __name__ == "__main__":
     Collection = Path(r"")
-    To_Check = Path(r"X:\_SAFE\0_DATA_SAFE\mmeditáció")
+    To_Check = Path(r"X:\2_Storage\2_DUPLICATES\2ndStr\2025-03-07_02-21-29\doc")
     output_main = Path(r"X:\Target")
-    hashmappath = Path(r"X:\testrun\mp3_test.pkl")
+    hashmappath = Path(r"X:\Target\SimpleStorage_blake2-512.pkl")
     hash_map = {}
     c = Counter()
     logger = global_logging(output_main)
-    if not Collection and not hashmappath:
+    if Collection == Path() and not hashmappath:
         print("Missing input.")
         sys.exit()
     if not hashmappath == Path():
@@ -364,6 +367,12 @@ if __name__ == "__main__":
         print("Exiting...")
         sys.exit()
     
+    logger.debug(f"Collection: {Collection}")
+    logger.debug(f"To_Check: {To_Check}")
+    logger.debug(f"Output: {output_main}")
+    logger.debug(f"Hash map: {hashmappath}")
+    logger.debug("Hash algo: blake2-512")
+
     if not hash_map:
         for collection_files in crawler(str(Collection)):
             collection_files.hash = calc_hash(collection_files.path)
@@ -377,7 +386,7 @@ if __name__ == "__main__":
             print(f"Error hashing file {tobechecked.path}")
             continue
         if hashh in hash_map:
-            print("Found")
+            #print("Found")
             c.update()
             #target_dir = output_main / 'duplicates'
             #target_dir = get_available_subfolder(target_dir,tobechecked.name)
@@ -387,4 +396,8 @@ if __name__ == "__main__":
             #    print(f"File MOVED {tobechecked.path} to {targetPathh}")
             #except Exception as e:
             #    print(f'Move error {tobechecked} {e}')
+        else:
+            print("Not Found")
+            print(tobechecked.path)
+            logger.error(f"Missing file \n{tobechecked.path}")
     c.show()
