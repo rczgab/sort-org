@@ -346,10 +346,12 @@ def clean_hashmap(hash_map):
 
 if __name__ == "__main__":
     Collection = Path(r"")
-    To_Check = Path(r"X:\TrashShit\doc")
+    To_Check = Path(r"X:\TrashShit")
     output_main = Path(r"X:\Target")
-    hashmappath = Path(r"X:\Target\SimpleStorage-sha3-256.pkl")
-    algo = "sha3"
+    hashmappath = Path(r"X:\Target\SimpleStorage_blake2-512.pkl")
+    #hashmappath = Path(r"X:\Target\SimpleStorage-sha3-256.pkl")
+    algo = "blake2"
+    #"sha3"
     #"blake2"
     hash_map = {}
     c = Counter()
