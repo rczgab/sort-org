@@ -66,7 +66,7 @@ def calc_hash(file_path, hash_algo=hashlib.sha3_256, chunk_size=65536, shorten=F
                 chunk = f.read(chunk_size)
                 #Shorten option for optional use. Code is left here for future use.
                 if shorten:
-                    if f.tell() > 1 * 1024 * 1024:
+                    if f.tell() > 150 * 1024 * 1024:
                         #logger.warning(f"Shortening (250mb) hash calculation for {file_path}")
                         break
                 if not chunk:
@@ -111,37 +111,47 @@ If the hash is the same, move the duplicates to a new directory, but leave the f
 If the list of paths doesn't contain the keyword, leave the first file.
 """
 if __name__ == '__main__':
-    root_dir = Path(r"X:\Collection_Storage\Movies")
+    root_dir = Path(r"X:\Collection_Storage\Game")
+    alternate_dir_1 = Path(r"X:\_SAFE\0_DATA_SAFE\SW_iCloudZip\localGame")
+    alternate_dir_2 = Path(r"")
+    alternate_dir_3 = Path(r"")
+
+    directories = [root_dir, alternate_dir_1, alternate_dir_2, alternate_dir_3]
     
     # Define the priority folders list (order matters: first is highest)
-    PRIORITY_FOLDERS = ["kinetoroldmar", "duplo", "newarrivals", "other"]
+    PRIORITY_FOLDERS = ["Collection_Storage", "local"]
 
     # Filter for files (optional)
-    file_filter = ('.jpg','.png','.srt','.txt','.ac3','.zip','.pam','.ass','.sfv')
+    #file_filter = ('.jpg','.png','.srt','.txt','.ac3','.zip','.pam','.ass','.sfv')
+    #file_filter = ('.jpg', '.jpeg')
+    file_filter = ('.img',)
 
     logger = global_logging(root_dir.parent)
     c = Counter()    
     d_files = {}
     hash_map = {}
-    for file in root_dir.rglob('*'):
-        #if file.suffix.lower() not in file_filter:
-        #    continue
-        if file.is_symlink():
+    for dir in directories:
+        if dir == Path(r""):
             continue
-        if file.is_file():
-            extension = file.suffix.lower()[1:]
-            file_size = file.stat().st_size
-            d_files.setdefault(extension, {}).setdefault(file_size, []).append(file)
-            c.update()
-    c.show()
-    c.clear()
+        for file in dir.rglob('*'):
+            if file.suffix.lower() not in file_filter:
+                continue
+            if file.is_symlink():
+                continue
+            if file.is_file():
+                extension = file.suffix.lower()[1:]
+                file_size = file.stat().st_size
+                d_files.setdefault(extension, {}).setdefault(file_size, []).append(file)
+                c.update()
+        c.show()
+        c.clear()
 
     for ext, size_dict in d_files.items():
         for size_val, file_list in size_dict.items():
               if len(file_list) > 1:
                    for file in file_list:
                         c.update()
-                        hash = calc_hash(file, shorten=True)
+                        hash = calc_hash(file, shorten=False)
                         if hash:
                             hash_map.setdefault(hash, []).append(file)
                         else:

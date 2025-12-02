@@ -93,7 +93,7 @@ if __name__ == '__main__':
     if not output_main.exists():
         print(f"Output directory does not exist: {output_main}")
         output_main.mkdir(parents=True, exist_ok=True)
-    db = load_database_from_pickle(r"X:\_SAFE\0_DATA_SAFE\to_move.pkl")
+    db = load_database_from_pickle(r"X:\Collection_Storage\to_move.pkl")
     if not db:
         print("Empty database")
         sys.exit()
@@ -106,13 +106,13 @@ if __name__ == '__main__':
             print(f"Missing: {fpath}")
             logger.error(f"Missing: {fpath}")
             continue
-        try:
-            relative_path = fpath.relative_to(r"X:\_SAFE\0_DATA_SAFE\Movies")
-        except ValueError:
-            print(f"Path is not under the root directory: {fpath}")
-            logger.error(f"Path is not under the root directory: {fpath}")
-            continue
-        destination = output_main / relative_path.parent
+        #try:
+        #    relative_path = fpath.relative_to(r"X:\_SAFE\0_DATA_SAFE\Movies")
+        #except ValueError:
+        #    print(f"Path is not under the root directory: {fpath}")
+        #    logger.error(f"Path is not under the root directory: {fpath}")
+        #    continue
+        destination = output_main #/ relative_path.parent
         subdir = get_available_subfolder(destination, fpath.name)
         if subdir:
             try:

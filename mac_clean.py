@@ -82,6 +82,7 @@ def get_available_subfolder(output_dir, base_name, max_attempts = 500000):
 
 def condition_moveAppleFiles(file_info):
     if file_info.name.startswith('._'):
+        return True
         if file_info.size == 4 * 1024:
             return True
     elif file_info.name == '.DS_Store':
@@ -147,7 +148,7 @@ def condition_organize(file_info):
         logger.error(f"Error in organize: {e}", exc_info=True)
         return False, None
 
-root_dir = Path(r"X:\_SAFE\0_DATA_SAFE\Movies")
+root_dir = Path(r"X:\2_Storage\2_DUPLICATES")
 output_main = Path(r"X:\AppleShit")
 
 if __name__ == '__main__':
@@ -159,10 +160,10 @@ if __name__ == '__main__':
     logger.global_logging(output_main)
     logger = logging.getLogger(__name__)
 
-    other_ext = ('.nfo',)
+    other_ext = ('.gp3','.gp4')
+    #('.nfo',)
     #('.sift','.php','.peft','.xsl', '.xsd','.xspf','.xst','.track','.thumb','.pp','.pcam','.a','.air','.dll','.exe')
     #('.pp','.diz','.fpc','ocx','.dll','.pas','.bak','.c','.h','.cpp')
-    #('.gp3','.gp4')
     #('.iso','.las','.7z','.zip','.rar')
     subscript_ext = ('.srt', '.ass')
 
@@ -172,12 +173,12 @@ if __name__ == '__main__':
         
         #condition = True
         #condition = condition_extension(file_i, other_ext)
-        #condition = condition_moveAppleFiles(file_i)
+        condition = condition_moveAppleFiles(file_i)
         #condition = condition_movies(file_i, movies_ext)
         #condition = condition_shortmp3(file_i)
         #condition = condition_Thumbs(file_i)
         #condition, output_dir = condition_organize(file_i)
-        condition = condition_filename(file_i,'ETRG.mp4')
+        #condition = condition_filename(file_i,'ETRG.mp4')
 
         if condition:
             #print(file_i.name)
