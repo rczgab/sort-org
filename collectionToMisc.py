@@ -297,9 +297,12 @@ def calc_hash(file_path, algo, chunk_size=65536, shorten=False):
     if algo == "sha3":
         hash_algo=hashlib.sha3_256
         hash_obj = hash_algo()
-    if algo == "blake2":
+    elif algo == "blake2":
     #logger.debug("Hash algo: sha3-256")
         hash_obj = hashlib.blake2b(digest_size=64)
+    else:
+        print(f"Unknown hash algorithm: {algo}")
+        sys.exit(1)
     try:
         with open(file_path, 'rb') as f:
             while True:

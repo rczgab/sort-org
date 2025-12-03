@@ -5,6 +5,12 @@
 # The script is designed to be run on a local filesystem.
 # shutil.move is guaranteed to be atomic, a rename operation on the same drive and on the same filesystem.
 
+"""
+
+TODO:: Retain folder structure.
+list comprehension
+"""
+
 import os
 import datetime
 import logging
@@ -16,23 +22,11 @@ import hashlib
 import shutil
 from dataclasses import dataclass, field
 from typing import Optional
+from pathlib import Path
 
 # --- Constants and configuration ---
 
 #Config
-#Root folder containing possible duplicates
-#root_directory = r"X:\2_Storage\2_DUPLICATES\ROOT\partial"
-root_directory = r"X:\search_this"
-#Folder to move the unique files to
-#output_main = r"X:\2_Storage\2_DUPLICATES\2ndStorage"
-output_main = r"X:\nada"
-#Optional link to previously stored hash map
-
-
-hashMaintainBit = False
-
-#link_hash_map = 'X:/Target/T_hashmap.pkl'
-link_hash_map = ''
 
 
 
@@ -115,42 +109,25 @@ doc_ext = ('.doc','.docx','.xls','.xlsx','.txt', '.html', '.htm', '.ppt','.pptx'
 all_extensions = tuple(
     image_Exif_ext + image_ext + video_ext + subscript_ext +
     audio_ext + pdf_ext + compressed_ext + doc_ext)
-#Return the corresponding string for the naming of the subfolder, based on the filetype.
-def type_selector(file_info):
-    if check_extension(file_info,image_Exif_ext):
-        return 'img'
-    elif check_extension(file_info, image_ext):
-        return 'img'
-    elif check_extension(file_info, video_ext):
-        return 'video'
-    elif check_extension(file_info, subscript_ext):
-        return 'subscript'
-    elif check_extension(file_info, audio_ext):
-        return 'audio'
-    elif check_extension(file_info, pdf_ext):
-        return 'pdf'
-    elif check_extension(file_info, compressed_ext):
-        return 'compressed'
-    elif check_extension(file_info, doc_ext):
-        return 'doc'
-    elif check_extension(file_info, image_mac):
-        return 'heic'
-    else:
-        return 'other'
 
-##Alternative for development purposes
-#extension_map = {
-#    image_Exif_ext: 'img',
-#    image_ext: 'img',
-#    video_ext: 'video',
-#    ...
-#}
-#
-#def type_selector(file_info) -> str:
-#    for ext_tuple, label in extension_map.items():
-#        if file_info.name.lower().endswith(ext_tuple):
-#            return label
-#    return 'other'
+#Alternative for development purposes
+extension_map = {
+    image_Exif_ext: 'img',
+    image_ext: 'img',
+    video_ext: 'video',
+    subscript_ext: 'subscript',
+    audio_ext: 'audio',
+    pdf_ext: 'pdf',
+    compressed_ext: 'compressed',
+    doc_ext: 'doc',
+    image_mac: 'heic'
+}
+
+def type_selector(file_info) -> str:
+    for ext_tuple, label in extension_map.items():
+        if file_info.name.lower().endswith(ext_tuple):
+            return label
+    return 'other'
 
     
 # --- Helper functions ---
@@ -158,23 +135,17 @@ def type_selector(file_info):
 class Counter:
     def __init__(self):
         self.cr = 0
-        self.mr = 0
 
     def update(self):
-        if self.cr > 999:
-            self.mr += self.cr
-            print(f"Feldolgozott fájlok száma: {self.mr}")
-            #The current file should already count, so the counter starts at 1
-            self.cr = 1
-        else:
-            self.cr += 1
+        self.cr += 1
+        if self.cr%1000 == 0:
+            print(f"Feldolgozott fájlok száma: {self.cr}")
 
     def clear(self):
         self.cr = 0
-        self.mr = 0
 
     def show(self):
-        print(f"Elemszám: {self.mr + self.cr}")
+        print(f"Elemszám: {self.cr}")
     
 #Logger
 #Global logging, with a rotating file handler
@@ -215,28 +186,7 @@ class FileInfo:
     hash: str = field(default="")
     exif_time: Optional[datetime.datetime] = field(default=None)
 
-#Path checkers
-#Check if the folder exists, if not, quit the program
-#Only used to check the main (input, output) folders as the first step, where quitting is appropriate
-def folder_dont_exist_quit(folder_path):
-    if not os.path.exists(folder_path):
-        print(f"{os.path.basename(folder_path)} dir not existing!")
-        sys.exit()
-#Formatting input path to be able to input Windows or Unix path as is
-def input_path_formatting(folder_path):
-    dir = folder_path.replace('\\','/')
-    return os.path.normpath(dir)
-# Main folder check, returns the formatted path
-def main_folder_check(folder_path):
-    dir = input_path_formatting(folder_path)
-    print(dir)
-    folder_dont_exist_quit(dir)
-    return dir
 
-#File handler helpers
-#Joining paths and normalizing them to be able to use path in Windows or Unix
-def join_norm_path(*paths):
-    return os.path.normpath(os.path.join(*paths))
 #Check if the variable is a year.
 #The range is intentionally set to 1000-3000
 def is_year(variable):
@@ -259,21 +209,29 @@ def check_extension(file_info,file_extensions):
 # The first subfolder shall start with 1 to keep the files in the folder even if the filename starts with a character which would cause stepping up to the target folder containing the numbered subfolders
 # The function creates the subfolder if it doesn't exist
 # The function returns None if it can't find an available subfolder after max_attempts
-def get_available_subfolder(output_dir, base_name, max_attempts = 500000):
+def get_available_subfolder(output_dir: Path, base_name: str, max_attempts: int = 500000):
+    """
+    Returns the first subfolder under `output_dir` (as a Path object) 
+    where a file named `base_name` does not exist.
+    Ensures that the subfolder is created if missing.
+    Returns None after `max_attempts` if no available subfolder is found.
+    """
     logger = logging.getLogger()
+    
+    # Start counting subfolders from 1
+    for subfolder_index in range(1, max_attempts):
+        subfolder_path = output_dir / str(subfolder_index)
+        # Ensure the subfolder exists
+        subfolder_path.mkdir(parents=True, exist_ok=True)
 
-    subfolder_index = 1
-    
-    while subfolder_index < max_attempts:
-        subfolder_path = os.path.normpath(os.path.join(output_dir, str(subfolder_index)))
-        if not os.path.exists(subfolder_path):
-            os.makedirs(subfolder_path)
-        if not os.path.exists(os.path.normpath(os.path.join(subfolder_path, base_name))):
+        # Construct the candidate file path within this subfolder
+        candidate_path = subfolder_path / base_name
+        
+        # Check if the file doesn't already exist
+        if not candidate_path.exists():
             return subfolder_path
-        subfolder_index += 1
-    
-    logger.warning(f"Could not find available subfolder after {max_attempts} attempts.", exc_info=True)
-    
+
+    logger.warning(f"Could not find an available subfolder after {max_attempts} attempts.")
     return None
 
 #Crawler
@@ -306,6 +264,26 @@ def crawler(root_directory, file_extensions = None):
         logger.warning(f"Permission denied: {root_directory}", exc_info=True)
     except Exception as e:
         logger.warning(f"Unexpected error in crawler: {e}", exc_info=True)
+
+#Alternative solution for the crawler
+#def crawl(root_directory, file_extensions = None):
+#    logger = logging.getLogger()
+#    try:
+#        for path in root_directory.rglob('*'):
+#            if path.is_file() and (file_extensions is None or path.suffix.lower() in file_extensions):
+#                file_info = FileInfo(
+#                    name = path.name,
+#                    path = str(path),
+#                    size = path.stat().st_size,
+#                    mtime = datetime.datetime.fromtimestamp(path.stat().st_mtime)
+#                )
+#                yield file_info
+#    except FileNotFoundError as e:
+#        logger.error(f"Directory not found: {root_directory}", exc_info=True)
+#    except PermissionError as e:
+#        logger.error(f"Permission denied: {root_directory}", exc_info=True)
+#    except Exception as e:
+#        logger.error(f"Unexpected error in crawler: {e}", exc_info=True)
 
 #Save database in a pickle file
 def save_database_to_pickle(db, filepath):
@@ -386,16 +364,12 @@ class ImageProc:
         return None
     
 
-def post_process_hash(hash_map):
-    #Defined later
-    pass
-
 # Create a timestamped subfolder path
 # The function returns a path with the current date and time
 # The function is used to create a new subfolder in the output directory
 def define_timestamped_subfolder_path(dir):
     now_str = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-    return join_norm_path(dir, now_str)
+    return Path(dir / now_str)
 
 #Clean the hash map
 #
@@ -443,10 +417,15 @@ def exif_distance(mtime: datetime.datetime, exif_time: datetime.datetime) -> flo
 if __name__ == '__main__':
     ### Setup
     #The counter should be used to count the number of files processed by sections. It shall be reset after each section.
-
-    #Checks for input path integrity
-    root_directory = main_folder_check(root_directory)
-    output_main = main_folder_check(output_main)
+    #Root folder containing possible duplicates
+    #root_directory = r"X:\2_Storage\2_DUPLICATES\ROOT\partial"
+    root_directory = Path(r"X:\search_this")
+    #Folder to move the unique files to
+    #output_main = r"X:\2_Storage\2_DUPLICATES\2ndStorage"
+    output_main = Path(r"X:\nada")
+    #Optional link to previously stored hash map
+    #link_hash_map = 'X:/Target/T_hashmap.pkl'
+    link_hash_map = ''
 
     now_str = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 
@@ -467,7 +446,6 @@ if __name__ == '__main__':
     Root: {root_directory}
     Output main: {output_main}
     Link to hashmap: {link_hash_map}
-    Hashmaintain? {hashMaintainBit}
     """)
     ans = input("Do you want to continue using these parameters? (yes/no): ")
     if ans in ["yes", "y"]:
@@ -476,13 +454,20 @@ if __name__ == '__main__':
         print("Exiting the program.")
         sys.exit()
     
-    
     if link_hash_map:
-        hash_map = load_database_from_pickle(link_hash_map)
+          print(link_hash_map)
+          ans = input(f"Do you want to compare to loaded collection? (yes/no): ")
+    if ans in ["yes", "y"]:
+        compareToCollection = True
+    else:
+        compareToCollection = False
+    
+    if compareToCollection:
+        Collection_hash_map = load_database_from_pickle(link_hash_map)
         #Cleanup for development purposes
-        print('Cleanup started')
-        hash_map = clean_hashmap(hash_map)
-        print('Cleanup finished')
+        #print('Cleanup started')
+        #hash_map = clean_hashmap(hash_map)
+        #print('Cleanup finished')
 
     #Process 1, build info of new files
 
